@@ -20,16 +20,29 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'ninja',
+    # Core
     'apps.accounts',
     'apps.institution',
     'apps.academic',
     'apps.student',
     'apps.staff',
+    # Academic
     'apps.learning',
-    'apps.finance',
-    'apps.communication',
     'apps.reports',
     'apps.offline',
+    # Finance & Comm
+    'apps.finance',
+    'apps.communication',
+    # Nigerian Features
+    'apps.hostel',
+    'apps.health',
+    'apps.nysc',
+    'apps.idcard',
+    'apps.library',
+    # Operations
+    'apps.calendar',
+    'apps.complaint',
+    'apps.clearance',
 ]
 
 MIDDLEWARE = [
