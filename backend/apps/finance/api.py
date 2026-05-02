@@ -1,116 +1,125 @@
-"""Finance API - Fees, Payments"""
+"""
+from django.db import models
+Finance API - REAL endpoints
+==================================
+"""
 from ninja import Schema
+from typing import Optional
 from ninjaJWT import router as finance_router
 
 
-class FeeItemSchema(Schema):
+class FeeSchema(Schema):
     id: str
     name: str
     amount: float
-    is_compulsory: bool
-    programme_id: str = ''
-    level: int
+    amount_paid: float
+    is_paid: bool
+    due_date: str
 
 
 class PaymentSchema(Schema):
     id: str
     amount: float
-    payment_ref: str
-    gateway: str
+    payment_type: str
     status: str
+    created_at: str
 
 
-# Fee endpoints
-@finance_router.get('/fees', response=list[FeeItemSchema])
-def list_fees(request, programme_id: str = None, level: int = None):
-    """List fee items"""
-    from apps.finance.models import FeeItem
-    query = FeeItem.objects.all()
-    if programme_id:
-        query = query.filter(programme_id=programme_id)
-    if level:
-        query = query.filter(level=level)
-    return query
-
-
-@finance_router.get('/fees/student/{student_id}')
-def get_student_fees(request, student_id: str):
-    """Get student fees"""
+# Student fees
+@finance_router.get('/fees/', response=list[FeeSchema])
+def list_my_fees(request):
+    """Get student's fee records"""
     from apps.finance.models import StudentFee
-    from apps.accounts.models import User
+    from apps.student.models import StudentProfile
     
-    fees = StudentFee.objects.filter(student_id=student_id)
-    return [{
-        'id': str(f.id),
-        'fee_item': f.fee_item.name,
-        'amount_due': float(f.amount_due),
-        'amount_paid': float(f.amount_paid),
-        'balance': float(f.balance),
-        'status': f.status
-    } for f in fees]
+    profile = StudentProfile.objects.get(user=request.user)
+    return StudentFee.objects.filter(student=profile)
 
 
-# Payment endpoints
-@finance_router.post('/payments/initialize')
-def initialize_payment(request, amount: float, fee_item_ids: list[str]):
-    """Initialize payment with gateway"""
-    from apps.finance.models import Payment, StudentFee
-    from apps.accounts.models import User
-    from apps.institution.models import InstitutionSettings
-    from datetime import datetime
-    import secrets
+@finance_router.get('/fees/summary')
+def get_fee_summary(request):
+    """Get fee summary"""
+    from apps.finance.models import StudentFee
+    from apps.student.models import StudentProfile
     
-    # Get settings
-    settings = InstitutionSettings.objects.first()
-    gateway = settings.payment_gateway if settings else 'paystack'
+    profile = StudentProfile.objects.get(user=request.user)
+    fees = StudentFee.objects.filter(student=profile)
     
-    # Create payment
-    ref = f"{gateway.upper()}{datetime.now().strftime('%Y%m%d%H%M%S')}{secrets.token_hex(4)}"
-    payment = Payment.objects.create(
-        student=request.user,
-        amount=amount,
-        payment_ref=ref,
-        gateway=gateway
-    )
+    total = fees.aggregate(total=models.Sum('amount'))['total'] or 0
+    paid = fees.aggregate(paid=models.Sum('amount_paid'))['paid'] or 0
+    balance = total - paid
     
     return {
-        'payment_ref': ref,
-        'amount': amount,
-        'gateway': gateway,
-        'access_code': 'mock_access_code',  # Would call gateway API in production
-        'authorization_url': f'https://{gateway}.mock/pay/{ref}'
+        'total': float(total),
+        'paid': float(paid),
+        'balance': float(balance),
+        'is_clear': balance <= 0
     }
 
 
-@finance_router.get('/payments/verify')
-def verify_payment(request, reference: str):
-    """Verify payment status"""
+# Make payment
+@finance_router.post('/payments/initialize')
+def initialize_payment(request, amount: float, fee_ids: list[str]):
+    """Initialize payment"""
+    from apps.finance.models import Payment, StudentFee
+    from apps.student.models import StudentProfile
+    
+    profile = StudentProfile.objects.get(user=request.user)
+    
+    # Create payment record
+    payment = Payment.objects.create(
+        student=profile,
+        amount=amount,
+        payment_type='school_fees',
+        status='pending'
+    )
+    
+    return {
+        'payment_id': str(payment.id),
+        'amount': amount,
+        'reference': f'PAY-{payment.id}',
+        'instructions': 'Use reference to pay via bank'
+    }
+
+
+# All fees (admin/bursar)
+@finance_router.get('/all-fees/', response=list[FeeSchema])
+def list_all_fees(request, status: str = None):
+    """List all fee records"""
+    from apps.finance.models import StudentFee
+    
+    query = StudentFee.objects.all()
+    if status == 'paid':
+        query = query.filter(is_paid=True)
+    elif status == 'unpaid':
+        query = query.filter(is_paid=False)
+    
+    return query[:100]
+
+
+# All payments (admin/bursar)
+@finance_router.get('/all-payments/', response=list[PaymentSchema])
+def list_all_payments(request):
+    """List all payments"""
     from apps.finance.models import Payment
     
-    payment = Payment.objects.get(payment_ref=reference)
-    
-    # Would verify with gateway in production
-    payment.status = 'success'
-    payment.paid_at = datetime.now()
-    payment.save()
-    
-    return payment
+    return Payment.objects.order_by('-created_at')[:100]
 
 
-@finance_router.get('/payments/history', response=list[PaymentSchema])
-def payment_history(request):
-    """Get payment history"""
+# Revenue analytics
+@finance_router.get('/revenue/')
+def get_revenue(request):
+    """Get revenue analytics"""
     from apps.finance.models import Payment
-    return Payment.objects.filter(student=request.user)
-
-
-# Scholarship endpoints
-@finance_router.get('/scholarships', response=list)
-def list_scholarships(request):
-    """List scholarships"""
-    from apps.finance.models import Scholarship
-    from apps.accounts import User
+    from django.db.models import Sum
     
-    if not request.user.has_role('bursar', 'institution_admin'):
-        return 403, {'error': 'Access denied'}
-    return Scholarship.objects.all()
+    completed = Payment.objects.filter(status='completed')
+    
+    total = completed.aggregate(total=Sum('amount'))['total'] or 0
+    
+    by_type = completed.values('payment_type').annotate(total=Sum('amount'))
+    
+    return {
+        'total_revenue': float(total),
+        'by_type': list(by_type)
+    }

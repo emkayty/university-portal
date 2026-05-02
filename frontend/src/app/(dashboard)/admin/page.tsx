@@ -1,104 +1,79 @@
 /**
- * Institution Admin Dashboard
- * ===================
- * System settings, users, backup
+ * Admin Dashboard - REAL DATA
  */
 'use client';
-
-import { useState } from 'react';
-import { Settings, Users, Database, Server, Shield, Bell, FileText, Palette, Building, Activity, HardDrive, RefreshCw } from 'lucide-react';
-import { useAuthStore, useInstitutionStore } from '@/store';
+import { Users, Activity, Server, Shield, Settings, Database, FileText, Building, HardDrive, RefreshCw } from 'lucide-react';
+import { useAdminDashboard } from '@/hooks/useData';
 import { DashboardSidebar, DashboardHeader } from '@/components/layout/Dashboard';
+import { PageLoader, ErrorState, QuickAction } from '@/components/ui/DashboardUI';
 
-const DEMO_STATS = {
-  users: 1250,
-  students: 850,
-  staff: 42,
-  active_sessions: 1,
-};
+function StatsSection() {
+  const { analytics, loading } = useAdminDashboard();
+  if (loading || !analytics) return <div className="grid grid-cols-4 gap-4 mb-6"><div className="card p-4 animate-pulse h-24"></div></div>;
+  const stats = [
+    { label: 'Total Students', value: analytics.total_students, icon: '👨‍🎓', color: 'blue' },
+    { label: 'Total Staff', value: analytics.total_staff, icon: '👨‍🏫', color: 'green' },
+    { label: 'Active Courses', value: analytics.active_courses, icon: '📚', color: 'purple' },
+    { label: 'Avg GPA', value: analytics.average_gpa.toFixed(2), icon: '📊', color: 'amber' },
+  ];
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {stats.map((s, i) => (
+        <div key={i} className="card p-4"><p className="text-gray-500 text-sm">{s.label}</p><h3 className="font-bold text-2xl">{s.value}</h3></div>
+      ))}
+    </div>
+  );
+}
+
+function QuickActionsSection() {
+  const actions = [
+    { icon: '⚙️', label: 'Settings', sub: 'Branding', href: '/dashboard/settings' },
+    { icon: '👥', label: 'Users', sub: 'Manage', href: '/dashboard/users' },
+    { icon: '🏛️', label: 'Academic', sub: 'Structure', href: '/dashboard/academic' },
+    { icon: '💾', label: 'Backup', sub: 'Data', href: '/dashboard/backup' },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {actions.map((a, i) => (
+        <a key={i} href={a.href} className="card p-4 flex items-center gap-3 hover:shadow-md">
+          <span className="text-2xl">{a.icon}</span><div><p className="font-medium">{a.label}</p><p className="text-xs text-gray-500">{a.sub}</p></div>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function UsersSection() {
+  const { students, staff, loading } = useAdminDashboard();
+  return (
+    <div className="card">
+      <div className="p-4 border-b border-gray-100"><h2 className="font-semibold">Users</h2></div>
+      <div className="divide-y divide-gray-100">
+        <div className="p-4"><p className="font-medium">Students</p><p className="text-gray-500">{students.length || 0} total</p></div>
+        <div className="p-4"><p className="font-medium">Staff</p><p className="text-gray-500">{staff.length || 0} total</p></div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
-  const { user } = useAuthStore();
-  const { settings } = useInstitutionStore();
-  const [stats] = useState(DEMO_STATS);
-
+  const { loading, error, refetch } = useAdminDashboard();
+  if (error) return <div className="min-h-screen bg-gray-50"><DashboardSidebar /><div className="lg:pl-64"><DashboardHeader /><main className="p-6"><ErrorState title="Load Failed" message={error.message} onRetry={refetch} /></main></div></div>;
+  if (loading) return <div className="min-h-screen bg-gray-50"><DashboardSidebar /><div className="lg:pl-64"><DashboardHeader /><main className="p-6"><PageLoader /></main></div></div>;
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardSidebar />
       <div className="lg:pl-64">
         <DashboardHeader />
         <main className="p-4 lg:p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">System Administration</h1>
-            <p className="text-gray-500">{settings?.institution_name || 'University Portal'}</p>
+          <div className="flex justify-between mb-6">
+            <div><h1 className="text-2xl font-bold">System Administration</h1><p className="text-gray-500">Manage the portal</p></div>
+            <button onClick={refetch} className="p-2 hover:bg-gray-100 rounded-lg"><RefreshCw className="w-5 h-5" /></button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="card p-4">
-              <div className="flex items-center justify-between">
-                <div><p className="text-gray-500 text-sm">Total Users</p><h3 className="font-bold text-2xl">{stats.users}</h3></div>
-                <Users className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-            <div className="card p-4">
-              <div className="flex items-center justify-between">
-                <div><p className="text-gray-500 text-sm">Students</p><h3 className="font-bold text-2xl">{stats.students}</h3></div>
-                <Activity className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-            <div className="card p-4">
-              <div className="flex items-center justify-between">
-                <div><p className="text-gray-500 text-sm">Staff</p><h3 className="font-bold text-2xl">{stats.staff}</h3></div>
-                <Server className="w-8 h-8 text-purple-600" />
-              </div>
-            </div>
-            <div className="card p-4">
-              <div className="flex items-center justify-between">
-                <div><p className="text-gray-500 text-sm">System Status</p><h3 className="font-bold text-2xl text-green-600">Healthy</h3></div>
-                <Shield className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <a href="/dashboard/settings" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Palette className="w-8 h-8 text-blue-600" /><div><p className="font-medium">Branding</p><p className="text-xs text-gray-500">Logo, colors</p></div>
-            </a>
-            <a href="/dashboard/users" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Users className="w-8 h-8 text-green-600" /><div><p className="font-medium">Users</p><p className="text-xs text-gray-500">Manage accounts</p></div>
-            </a>
-            <a href="/dashboard/academic" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Building className="w-8 h-8 text-purple-600" /><div><p className="font-medium">Academic</p><p className="text-xs text-gray-500">Structure</p></div>
-            </a>
-            <a href="/dashboard/backup" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <HardDrive className="w-8 h-8 text-amber-600" /><div><p className="font-medium">Backup</p><p className="text-xs text-gray-500">Data backup</p></div>
-            </a>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <a href="/dashboard/audit" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <FileText className="w-8 h-8 text-blue-600" /><div><p className="font-medium">Audit Logs</p><p className="text-xs text-gray-500">Activity log</p></div>
-            </a>
-            <a href="/dashboard/notifications" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Bell className="w-8 h-8 text-green-600" /><div><p className="font-medium">Notifications</p><p className="text-xs text-gray-500">Alerts</p></div>
-            </a>
-            <a href="/dashboard/database" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Database className="w-8 h-8 text-purple-600" /><div><p className="font-medium">Database</p><p className="text-xs text-gray-500">Migrations</p></div>
-            </a>
-            <a href="/dashboard/security" className="card p-4 flex items-center gap-3 hover:shadow-md">
-              <Shield className="w-8 h-8 text-amber-600" /><div><p className="font-medium">Security</p><p className="text-xs text-gray-500">Settings</p></div>
-            </a>
-          </div>
-          
-          <div className="card">
-            <div className="p-4 border-b border-gray-100"><h2 className="font-semibold">Quick System Actions</h2></div>
-            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button className="btn btn-secondary w-full">Run Migrations</button>
-              <button className="btn btn-secondary w-full">Collect Static</button>
-              <button className="btn btn-secondary w-full">Clear Cache</button>
-              <button className="btn btn-primary w-full">Create Backup</button>
-            </div>
-          </div>
+          <StatsSection />
+          <h2 className="font-semibold mb-3">Quick Actions</h2>
+          <QuickActionsSection />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><UsersSection /></div>
         </main>
       </div>
     </div>
