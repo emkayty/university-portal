@@ -116,14 +116,14 @@ class PerformanceAnalytics:
         first_class = sum(1 for g in gpas if g >= 4.0)
         second_upper = sum(1 for g in gpas if 3.0 <= g < 4.0)
         second_lower = sum(1 for g in gpas if 2.0 <= g < 3.0)
-        pass = sum(1 for g in gpas if g >= 1.0 and g < 2.0)
+        pass_class = sum(1 for g in gpas if g >= 1.0 and g < 2.0)
         prob = sum(1 for g in gpas if g < 1.0)
         
         return {
             'first_class': first_class,
             'second_class_upper': second_upper,
             'second_class_lower': second_lower,
-            'pass': pass,
+            'pass_class': pass_class,
             'probation': prob,
             'total': len(gpas)
         }
