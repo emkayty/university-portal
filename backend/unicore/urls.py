@@ -13,6 +13,7 @@ from apps.learning.api import router as learning_router
 from apps.finance.api import router as finance_router
 from apps.communication.api import router as communication_router
 from apps.offline.api import router as offline_router
+from apps.reports.api import router as reports_router
 
 api = NinjaAPI()
 
@@ -26,6 +27,7 @@ api.add_router('/learning/', learning_router, tags=['learning'])
 api.add_router('/finance/', finance_router, tags=['finance'])
 api.add_router('/communication/', communication_router, tags=['communication'])
 api.add_router('/offline/', offline_router, tags=['offline'])
+api.add_router('/reports/', reports_router, tags=['reports'])
 
 urlpatterns = [
     path('admin/', admin.site.urls),
