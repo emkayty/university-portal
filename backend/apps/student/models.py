@@ -139,6 +139,13 @@ class StudentProfile(models.Model):
     class Meta:
         db_table = 'student_profiles'
         ordering = ['matric_number']
+        indexes = [
+            models.Index(fields=['matric_number']),
+            models.Index(fields=['nin']),
+            models.Index(fields=['phone']),
+            models.Index(fields=['admission_status']),
+            models.Index(fields=['current_level']),
+        ]
     
     def __str__(self):
         return self.matric_number or f"Student {self.id}"

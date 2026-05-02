@@ -29,6 +29,11 @@ class User(AbstractUser):
     class Meta:
         db_table = 'users'
         ordering = ['email']
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['role']),
+            models.Index(fields=['is_active']),
+        ]
     
     def __str__(self):
         return self.email
