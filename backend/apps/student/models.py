@@ -6,11 +6,31 @@ from apps.academic.models import Programme, AcademicSession
 
 
 class StudentProfile(models.Model):
-    """Student Profile - extends User"""
+    """Student Profile - extends User - Nigerian University Standards"""
     
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
+    ]
+    
+    BLOOD_TYPE_CHOICES = [
+        ('A+', 'A+'), ('A-', 'A-'),
+        ('B+', 'B+'), ('B-', 'B-'),
+        ('AB+', 'AB+'), ('AB-', 'AB-'),
+        ('O+', 'O+'), ('O-', 'O-'),
+    ]
+    
+    GENOTYPE_CHOICES = [
+        ('AA', 'AA'), ('AS', 'AS'),
+        ('SS', 'SS'), ('AC', 'AC'),
+    ]
+    
+    MODE_OF_ENTRY_CHOICES = [
+        ('UTME', 'UTME'),
+        ('DE', 'Direct Entry'),
+        ('TRANSFER', 'Transfer'),
+        ('JUPEB', 'JUPEB'),
+        ('PART_TIME', 'Part Time'),
     ]
     
     ADMISSION_STATUS_CHOICES = [
@@ -36,19 +56,56 @@ class StudentProfile(models.Model):
     )
     matric_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     
-    # Personal Info
+    # === ESSENTIAL PERSONAL DATA (Nigerian + Global) ===
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     other_names = models.CharField(max_length=100, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    
+    # === PROFILE PHOTO (ID Card) ===
+    photo = models.ImageField(upload_to='student_photos/', null=True, blank=True)
+    
+    # === HEALTH DATA (Critical for hostel, NYSC) ===
+    blood_type = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)
+    genotype = models.CharField(max_length=2, choices=GENOTYPE_CHOICES, blank=True)
+    disabilities = models.TextField(blank=True)  # Accessibility needs
+    
+    # === NATIONAL IDENTIFICATION (NIN) ===
+    nin = models.CharField(max_length=11, blank=True)  # National ID Number
+    international_passport = models.CharField(max_length=20, blank=True)
+    
+    # === CONTACT DATA ===
     phone = models.CharField(max_length=20, blank=True)
+    alt_phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
     address = models.TextField(blank=True)
+    
+    # === GEOGRAPHIC (Nigerian) ===
     nationality = models.CharField(max_length=50, default='Nigerian')
     state_of_origin = models.CharField(max_length=50, blank=True)
     lga = models.CharField(max_length=50, blank=True)
+    state_of_residence = models.CharField(max_length=50, blank=True)
+    district = models.CharField(max_length=50, blank=True)
     
-    # Academic
+    # === EMERGENCY CONTACT (Critical) ===
+    emergency_contact_name = models.CharField(max_length=100, blank=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True)
+    emergency_contact_relationship = models.CharField(max_length=50, blank=True)
+    emergency_contact_address = models.TextField(blank=True)
+    
+    # === NEXT OF KIN ===
+    next_of_kin_name = models.CharField(max_length=100, blank=True)
+    next_of_kin_phone = models.CharField(max_length=20, blank=True)
+    next_of_kin_relationship = models.CharField(max_length=50, blank=True)
+    next_of_kin_address = models.TextField(blank=True)
+    
+    # === BANK DETAILS (For refunds, allowances) ===
+    bank_name = models.CharField(max_length=50, blank=True)
+    account_number = models.CharField(max_length=10, blank=True)
+    account_name = models.CharField(max_length=100, blank=True)
+    
+    # === ACADEMIC ===
     admission_session = models.ForeignKey(
         AcademicSession,
         on_delete=models.SET_NULL,
@@ -56,6 +113,7 @@ class StudentProfile(models.Model):
         blank=True,
         related_name='admitted_students'
     )
+    mode_of_entry = models.CharField(max_length=20, choices=MODE_OF_ENTRY_CHOICES, default='UTME')
     admission_status = models.CharField(max_length=20, choices=ADMISSION_STATUS_CHOICES, default='applicant')
     current_level = models.IntegerField(default=100)
     programme = models.ForeignKey(
@@ -66,8 +124,14 @@ class StudentProfile(models.Model):
         related_name='students'
     )
     
-    # Clearance
-    clearance_status = models.JSONField(default=dict)  # {library: false, hostel: false, ...}
+    # === PREVIOUS EDUCATION ===
+    previous_school_1 = models.CharField(max_length=100, blank=True)
+    previous_school_1_year = models.IntegerField(null=True, blank=True)
+    previous_school_2 = models.CharField(max_length=100, blank=True)
+    previous_school_2_year = models.IntegerField(null=True, blank=True)
+    
+    # === CLEARANCE ===
+    clearance_status = models.JSONField(default=dict)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -221,3 +221,35 @@ class StaffAppraisal(models.Model):
     
     def __str__(self):
         return f"{self.staff.staff_id} - {self.session.name}"
+
+# === EXTENDED STAFF FIELDS (Additional for Nigerian Standards) ===
+class StaffProfileExtended(models.Model):
+    """Extended staff data - Nigerian University Standards"""
+    staff = models.OneToOneField(StaffProfile, on_delete=models.CASCADE)
+    
+    # Profile Photo
+    photo = models.ImageField(upload_to='staff_photos/', null=True, blank=True)
+    
+    # National ID
+    nin = models.CharField(max_length=11, blank=True)
+    staff_type = models.CharField(max_length=20, default='academic')
+    
+    # Additional Contact
+    alt_phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    state_of_origin = models.CharField(max_length=50, blank=True)
+    
+    # Emergency Contact
+    emergency_contact_name = models.CharField(max_length=100, blank=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True)
+    emergency_contact_relationship = models.CharField(max_length=50, blank=True)
+    
+    # Bank Details
+    bank_name = models.CharField(max_length=50, blank=True)
+    account_number = models.CharField(max_length=10, blank=True)
+    account_name = models.CharField(max_length=100, blank=True)
+    
+    # Qualifications
+    highest_qualification = models.CharField(max_length=50, blank=True)
+    specialization = models.CharField(max_length=100, blank=True)
+    publications = models.IntegerField(default=0)
